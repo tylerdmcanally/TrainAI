@@ -5,7 +5,11 @@ import { Button } from '@/components/ui/button'
 import { UserPlus } from 'lucide-react'
 import { AddEmployeeDialog } from './add-employee-dialog'
 
-export function AddEmployeeButton() {
+interface AddEmployeeButtonProps {
+  companyId: string
+}
+
+export function AddEmployeeButton({ companyId }: AddEmployeeButtonProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
 
   return (
@@ -18,6 +22,7 @@ export function AddEmployeeButton() {
       <AddEmployeeDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+        companyId={companyId}
       />
     </>
   )

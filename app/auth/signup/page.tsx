@@ -78,8 +78,8 @@ export default function SignUpPage() {
         throw profileError
       }
 
-      // Success! Redirect to dashboard
-      router.push('/dashboard')
+      // Success! Redirect to owner dashboard
+      router.push('/dashboard/owner')
       router.refresh()
     } catch (err: any) {
       setError(err.message || 'Failed to sign up')

@@ -14,6 +14,24 @@ export default async function EmployeeDashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
 
+  // Get user's profile and verify they're an employee
+  const { data: profile } = await supabase
+    .from('users')
+    .select('role, name, company_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || profile.role !== 'employee') {
+    redirect('/dashboard/owner')
+  }
+
+  // Fetch company info
+  const { data: company } = await supabase
+    .from('companies')
+    .select('name')
+    .eq('id', profile.company_id)
+    .single()
+
   // Fetch assignments with training details
   const { data: assignments } = await supabase
     .from('assignments')
@@ -21,7 +39,6 @@ export default async function EmployeeDashboardPage() {
       id,
       status,
       progress,
-      time_spent,
       module_id,
       training_modules (
         id,
@@ -41,7 +58,7 @@ export default async function EmployeeDashboardPage() {
     duration: Math.ceil(((a.training_modules as any)?.video_duration || 0) / 60),
     progress: a.progress || 0,
     status: a.status as 'not_started' | 'in_progress' | 'completed',
-    timeSpent: a.time_spent || 0,
+    timeSpent: 0, // Time tracking not implemented yet
   })) || []
 
   const getStatusBadge = (status: string) => {
@@ -71,8 +88,13 @@ export default async function EmployeeDashboardPage() {
       <div className="p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Training</h1>
-          <p className="text-gray-600 mt-1">Complete your assigned training modules</p>
+          <h1 className="text-3xl font-bold text-gray-900">Employee Dashboard</h1>
+          <p className="text-gray-600 mt-1">View and complete your assigned training modules</p>
+          {company && (
+            <p className="text-sm text-gray-500 mt-1">
+              {company.name}
+            </p>
+          )}
         </div>
 
         {/* Stats */}
@@ -145,9 +167,6 @@ export default async function EmployeeDashboardPage() {
                           </span>
                           {assignment.progress > 0 && assignment.progress < 100 && (
                             <span>{assignment.progress}% complete</span>
-                          )}
-                          {assignment.timeSpent > 0 && (
-                            <span>{Math.floor(assignment.timeSpent / 60)}m watched</span>
                           )}
                         </div>
                       </div>

@@ -72,12 +72,21 @@ Be friendly, encouraging, and concise. When quizzing, ask one question at a time
     const audioBase64 = audioBuffer.toString('base64')
 
     // Save chat message to database
-    await supabase.from('chat_messages').insert({
-      training_id: trainingId,
-      user_id: user.id,
-      role: 'assistant',
-      message: aiMessage,
-    })
+    // First get the assignment ID
+    const { data: assignment } = await supabase
+      .from('assignments')
+      .select('id')
+      .eq('module_id', trainingId)
+      .eq('employee_id', user.id)
+      .single()
+
+    if (assignment) {
+      await supabase.from('chat_messages').insert({
+        assignment_id: assignment.id,
+        role: 'assistant',
+        content: aiMessage,
+      })
+    }
 
     return NextResponse.json({
       message: aiMessage,

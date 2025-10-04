@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import MuxPlayer from '@mux/mux-player-react'
 import { AITutorChat } from './ai-tutor-chat'
 import { CheckpointOverlay } from './checkpoint-overlay'
+import { CompletionOverlay } from './completion-overlay'
 
 interface EmployeeTrainingPlayerProps {
   training: any
@@ -18,6 +19,7 @@ export function EmployeeTrainingPlayer({ training }: EmployeeTrainingPlayerProps
   const [completedCheckpoints, setCompletedCheckpoints] = useState<Set<number>>(new Set())
   const [isPlayingIntro, setIsPlayingIntro] = useState(false)
   const [hasReachedEnd, setHasReachedEnd] = useState(false)
+  const [showCompletionOverlay, setShowCompletionOverlay] = useState(false)
   const [videoDuration, setVideoDuration] = useState(training.video_duration || 0)
   const playerRef = useRef<any>(null)
   const startTimeRef = useRef<number>(Date.now())
@@ -32,11 +34,23 @@ export function EmployeeTrainingPlayer({ training }: EmployeeTrainingPlayerProps
       const checkDuration = setInterval(() => {
         const duration = playerRef.current?.duration
         if (duration && duration > 0) {
-          console.log('📹 Got video duration from player:', duration)
+          console.log('📹 Got video duration from player:', duration, 'seconds')
           setVideoDuration(duration)
           clearInterval(checkDuration)
         }
       }, 100)
+
+      // Timeout after 5 seconds - fallback to chapters' max end_time if available
+      setTimeout(() => {
+        if (training.chapters && training.chapters.length > 0 && (!videoDuration || videoDuration === 0)) {
+          const maxEndTime = Math.max(...training.chapters.map((ch: any) => ch.end_time || 0))
+          if (maxEndTime > 0) {
+            console.log('⚠️ Using chapter end_time as fallback duration:', maxEndTime)
+            setVideoDuration(maxEndTime)
+            clearInterval(checkDuration)
+          }
+        }
+      }, 5000)
 
       return () => clearInterval(checkDuration)
     }
@@ -66,6 +80,7 @@ export function EmployeeTrainingPlayer({ training }: EmployeeTrainingPlayerProps
     }) || []
 
   console.log('📍 Checkpoints configured:', checkpoints, 'Duration:', videoDuration)
+  console.log('📊 Chapters data:', training.chapters?.map((ch: any) => ({ title: ch.title, start: ch.start_time, end: ch.end_time })))
 
   // Load existing progress
   useEffect(() => {
@@ -182,7 +197,14 @@ export function EmployeeTrainingPlayer({ training }: EmployeeTrainingPlayerProps
 
   // Monitor video time and trigger checkpoints
   useEffect(() => {
-    if (isLoading) return
+    if (isLoading) {
+      console.log('⏳ Still loading, skipping checkpoint monitoring')
+      return
+    }
+
+    if (checkpoints.length === 0) {
+      console.log('⚠️ No checkpoints configured!')
+    }
 
     const interval = setInterval(() => {
       if (playerRef.current) {
@@ -216,6 +238,25 @@ export function EmployeeTrainingPlayer({ training }: EmployeeTrainingPlayerProps
 
     return () => clearInterval(interval)
   }, [checkpoints, activeCheckpoint, isPaused, isLoading, isPlayingIntro, hasReachedEnd, videoDuration])
+
+  // Check if training is complete
+  useEffect(() => {
+    if (
+      hasReachedEnd &&
+      checkpoints.length > 0 &&
+      completedCheckpoints.size === checkpoints.length &&
+      !showCompletionOverlay &&
+      activeCheckpoint === null
+    ) {
+      console.log('🎊 Training complete! All checkpoints passed and video finished')
+      // Pause the video
+      if (playerRef.current) {
+        playerRef.current.pause()
+      }
+      // Show completion overlay
+      setShowCompletionOverlay(true)
+    }
+  }, [hasReachedEnd, completedCheckpoints.size, checkpoints.length, showCompletionOverlay, activeCheckpoint])
 
   const handleCheckpointAnswer = async (answer: string) => {
     // Call AI to evaluate the answer
@@ -380,6 +421,16 @@ export function EmployeeTrainingPlayer({ training }: EmployeeTrainingPlayerProps
                   question={getCheckpointQuestion(activeCheckpoint)}
                   onAnswer={handleCheckpointAnswer}
                   onContinue={handleContinueAfterCheckpoint}
+                />
+              )}
+
+              {/* Completion Overlay */}
+              {showCompletionOverlay && (
+                <CompletionOverlay
+                  trainingTitle={training.title}
+                  trainingId={training.id}
+                  checkpointsCompleted={completedCheckpoints.size}
+                  totalCheckpoints={checkpoints.length}
                 />
               )}
             </div>

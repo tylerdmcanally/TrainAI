@@ -46,6 +46,7 @@ export async function POST(
     const assignments = employeeIds.map(employeeId => ({
       module_id: id,
       employee_id: employeeId,
+      assigned_by: user.id, // Required by RLS policy
       status: 'not_started',
       progress: 0,
     }))
@@ -53,8 +54,7 @@ export async function POST(
     const { data, error } = await supabase
       .from('assignments')
       .upsert(assignments, {
-        onConflict: 'module_id,employee_id',
-        ignoreDuplicates: false
+        onConflict: 'module_id,employee_id'
       })
       .select()
 

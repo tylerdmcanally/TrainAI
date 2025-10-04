@@ -22,6 +22,7 @@ export function RecordingStep({ data, onUpdate, onNext, onBack }: RecordingStepP
   const chunksRef = useRef<Blob[]>([])
   const streamRef = useRef<MediaStream | null>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const elapsedTimeRef = useRef<number>(0) // Add ref to track elapsed time
   const videoPreviewRef = useRef<HTMLVideoElement | null>(null)
   const cameraPreviewRef = useRef<HTMLVideoElement | null>(null)
   const displayStreamRef = useRef<MediaStream | null>(null)
@@ -38,7 +39,11 @@ export function RecordingStep({ data, onUpdate, onNext, onBack }: RecordingStepP
   useEffect(() => {
     if (recordingState === 'recording') {
       timerRef.current = setInterval(() => {
-        setElapsedTime(prev => prev + 1)
+        setElapsedTime(prev => {
+          const newValue = prev + 1
+          elapsedTimeRef.current = newValue // Keep ref in sync
+          return newValue
+        })
       }, 1000)
     } else {
       if (timerRef.current) {
@@ -67,6 +72,11 @@ export function RecordingStep({ data, onUpdate, onNext, onBack }: RecordingStepP
 
   const startRecording = async () => {
     try {
+      // Reset timer and chunks for new recording
+      setElapsedTime(0)
+      elapsedTimeRef.current = 0
+      chunksRef.current = []
+
       // Get screen stream with cursor
       // Note: preferCurrentTab: false helps avoid suggesting THIS tab
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
@@ -137,7 +147,7 @@ export function RecordingStep({ data, onUpdate, onNext, onBack }: RecordingStepP
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'video/webm' })
         const videoUrl = URL.createObjectURL(blob)
-        onUpdate({ videoBlob: blob, videoDuration: elapsedTime, videoUrl })
+        onUpdate({ videoBlob: blob, videoDuration: elapsedTimeRef.current, videoUrl })
 
         // Stop all tracks
         if (streamRef.current) {

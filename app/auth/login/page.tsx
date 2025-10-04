@@ -33,6 +33,7 @@ export default function LoginPage() {
         throw error
       }
 
+      // Redirect to /dashboard - middleware will route to correct dashboard based on role
       router.push('/dashboard')
       router.refresh()
     } catch (err: any) {

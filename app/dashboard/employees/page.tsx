@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
@@ -91,41 +92,43 @@ export default async function EmployeesPage() {
             <h1 className="text-3xl font-bold text-gray-900">Employees</h1>
             <p className="text-gray-600 mt-1">Manage your team members</p>
           </div>
-          <AddEmployeeButton />
+          <AddEmployeeButton companyId={profile.company_id} />
         </div>
 
         {/* Employees List */}
         {employeesWithCounts && employeesWithCounts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {employeesWithCounts.map((employee) => (
-              <Card key={employee.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center">
-                      <Users className="h-6 w-6 text-white" />
+              <Link key={employee.id} href={`/dashboard/employees/${employee.id}`}>
+                <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+                  <CardHeader>
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center">
+                        <Users className="h-6 w-6 text-white" />
+                      </div>
+                      <Badge variant="secondary">Employee</Badge>
                     </div>
-                    <Badge variant="secondary">Employee</Badge>
-                  </div>
-                  <CardTitle className="text-lg">{employee.name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Mail className="h-4 w-4" />
-                      <span className="truncate">{employee.email}</span>
+                    <CardTitle className="text-lg">{employee.name}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Mail className="h-4 w-4" />
+                        <span className="truncate">{employee.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Calendar className="h-4 w-4" />
+                        <span>Joined {formatDate(employee.created_at)}</span>
+                      </div>
+                      <div className="pt-2 border-t">
+                        <p className="text-sm text-gray-500">
+                          {employee.assignmentCount} training(s) assigned
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Calendar className="h-4 w-4" />
-                      <span>Joined {formatDate(employee.created_at)}</span>
-                    </div>
-                    <div className="pt-2 border-t">
-                      <p className="text-sm text-gray-500">
-                        {employee.assignmentCount} training(s) assigned
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         ) : (
@@ -141,7 +144,7 @@ export default async function EmployeesPage() {
               <p className="text-gray-600 text-center max-w-md mb-6">
                 Add your first employee to start assigning training modules
               </p>
-              <AddEmployeeButton />
+              <AddEmployeeButton companyId={profile.company_id} />
             </CardContent>
           </Card>
         )}
