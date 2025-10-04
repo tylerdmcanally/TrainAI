@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { profile, loading } = useUser()
+  const { profile, companyName, loading } = useUser()
 
   // Role-based navigation - default to owner view while loading
   const navigation = !profile || profile?.role === 'owner' ? [
@@ -44,9 +44,15 @@ export function Sidebar() {
     <div className="flex h-screen w-64 flex-col border-r bg-white">
       {/* Logo */}
       <div className="flex h-16 items-center border-b px-6">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600" />
-          <span className="text-xl font-bold">TrainAI</span>
+        <Link href="/dashboard" className="flex items-center gap-3">
+          <img
+            src="/logo.png"
+            alt="TrainAI Logo"
+            className="h-10 w-10 flex-shrink-0"
+          />
+          <span className="text-lg font-semibold text-gray-900 truncate">
+            {companyName || 'TrainAI'}
+          </span>
         </Link>
       </div>
 

@@ -11,8 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { UserPlus, Loader2, CheckCircle2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { UserPlus, Loader2, CheckCircle2, X } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 
 interface AssignTrainingButtonProps {
@@ -36,37 +35,22 @@ export function AssignTrainingButton({ employeeId, employeeName }: AssignTrainin
   }, [open])
 
   const fetchTrainings = async () => {
-    const supabase = createClient()
+    try {
+      const response = await fetch(`/api/training/published?employee_id=${employeeId}`)
 
-    // Get user's company
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+      if (!response.ok) {
+        console.error('Failed to fetch trainings:', response.statusText)
+        return
+      }
 
-    const { data: profile } = await supabase
-      .from('users')
-      .select('company_id')
-      .eq('id', user.id)
-      .single()
+      const data = await response.json()
 
-    if (!profile) return
-
-    // Get all published trainings for this company
-    const { data: allTrainings } = await supabase
-      .from('training_modules')
-      .select('*')
-      .eq('company_id', profile.company_id)
-      .eq('status', 'published')
-      .order('created_at', { ascending: false })
-
-    // Get already assigned trainings
-    const { data: assignments } = await supabase
-      .from('assignments')
-      .select('module_id')
-      .eq('employee_id', employeeId)
-
-    const assignedIds = assignments?.map(a => a.module_id) || []
-    setAssignedTrainings(assignedIds)
-    setTrainings(allTrainings || [])
+      const assignedIds = data.assignments?.map((a: any) => a.module_id) || []
+      setAssignedTrainings(assignedIds)
+      setTrainings(data.trainings || [])
+    } catch (error) {
+      console.error('Error fetching trainings:', error)
+    }
   }
 
   const handleAssign = async () => {
@@ -115,7 +99,39 @@ export function AssignTrainingButton({ employeeId, employeeName }: AssignTrainin
     )
   }
 
-  const availableTrainings = trainings.filter(t => !assignedTrainings.includes(t.id))
+  const isAssigned = (trainingId: string) => assignedTrainings.includes(trainingId)
+
+  const handleUnassign = async (trainingId: string) => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/assignments/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          employeeId,
+          trainingId,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to un-assign training')
+      }
+
+      // Refresh the trainings list
+      await fetchTrainings()
+      router.refresh()
+    } catch (err: any) {
+      setError(err.message || 'Failed to un-assign training')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <>
@@ -129,49 +145,71 @@ export function AssignTrainingButton({ employeeId, employeeName }: AssignTrainin
           <DialogHeader>
             <DialogTitle>Assign Training to {employeeName}</DialogTitle>
             <DialogDescription>
-              Select training modules to assign. Only published trainings are shown.
+              Select training modules to assign. You can assign or reassign trainings at any time.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 mt-4">
-            {availableTrainings.length === 0 ? (
+            {trainings.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                <p>No trainings available to assign.</p>
-                <p className="text-sm mt-2">All published trainings have been assigned.</p>
+                <p>No published trainings available.</p>
+                <p className="text-sm mt-2">Create and publish a training first.</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {availableTrainings.map((training) => (
-                  <Card
-                    key={training.id}
-                    className={`cursor-pointer transition-all ${
-                      selectedTrainings.includes(training.id)
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'hover:border-gray-400'
-                    }`}
-                    onClick={() => toggleTraining(training.id)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <Checkbox
-                          checked={selectedTrainings.includes(training.id)}
-                          onCheckedChange={() => toggleTraining(training.id)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900">{training.title}</h4>
-                          {training.description && (
-                            <p className="text-sm text-gray-600 mt-1">{training.description}</p>
+                {trainings.map((training) => {
+                  const assigned = isAssigned(training.id)
+                  return (
+                    <Card
+                      key={training.id}
+                      className={`transition-all ${
+                        !assigned && selectedTrainings.includes(training.id)
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'hover:border-gray-400'
+                      }`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          {!assigned && (
+                            <Checkbox
+                              checked={selectedTrainings.includes(training.id)}
+                              onCheckedChange={() => toggleTraining(training.id)}
+                            />
                           )}
-                          <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                            <span>{Math.ceil(training.video_duration / 60)} min</span>
-                            <span>{training.chapters?.length || 0} chapters</span>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-semibold text-gray-900">{training.title}</h4>
+                              {assigned && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                                  Assigned
+                                </span>
+                              )}
+                            </div>
+                            {training.description && (
+                              <p className="text-sm text-gray-600 mt-1">{training.description}</p>
+                            )}
+                            <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                              <span>{Math.ceil(training.video_duration / 60)} min</span>
+                              <span>{training.chapters?.length || 0} chapters</span>
+                            </div>
                           </div>
+                          {assigned && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleUnassign(training.id)}
+                              disabled={loading}
+                              className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <X className="h-4 w-4" />
+                              Un-assign
+                            </Button>
+                          )}
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  )
+                })}
               </div>
             )}
 

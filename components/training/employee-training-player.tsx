@@ -21,6 +21,8 @@ export function EmployeeTrainingPlayer({ training }: EmployeeTrainingPlayerProps
   const [hasReachedEnd, setHasReachedEnd] = useState(false)
   const [showCompletionOverlay, setShowCompletionOverlay] = useState(false)
   const [videoDuration, setVideoDuration] = useState(training.video_duration || 0)
+  const [checkpointQuestion, setCheckpointQuestion] = useState<any>(null)
+  const [isLoadingQuestion, setIsLoadingQuestion] = useState(false)
   const playerRef = useRef<any>(null)
   const startTimeRef = useRef<number>(Date.now())
   const lastSaveTimeRef = useRef<number>(Date.now())
@@ -158,23 +160,42 @@ export function EmployeeTrainingPlayer({ training }: EmployeeTrainingPlayerProps
     }
   }, [training.id, isLoading])
 
-  // Play AI voice intro for checkpoint
+  // Play AI voice intro for checkpoint and generate question
   const playCheckpointIntro = async (checkpointIndex: number) => {
     const chapter = training.chapters[checkpointIndex]
     const introText = `Let's pause here to check your understanding of ${chapter.title}.`
 
     setIsPlayingIntro(true)
+    setIsLoadingQuestion(true)
 
     try {
-      const response = await fetch('/api/training/checkpoint-intro', {
+      // Generate the multiple choice question
+      const questionResponse = await fetch('/api/training/generate-checkpoint-question', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chapterTitle: chapter.title,
+          context: {
+            sop: training.sop,
+            keyPoints: training.key_points,
+            transcript: training.transcript,
+          },
+        }),
+      })
+
+      const questionData = await questionResponse.json()
+      setCheckpointQuestion(questionData)
+      setIsLoadingQuestion(false)
+
+      // Play the intro audio
+      const audioResponse = await fetch('/api/training/checkpoint-intro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: introText }),
       })
 
-      const { audio } = await response.json()
+      const { audio } = await audioResponse.json()
 
-      // Play the intro audio
       if (audioRef.current) {
         audioRef.current.pause()
       }
@@ -189,8 +210,9 @@ export function EmployeeTrainingPlayer({ training }: EmployeeTrainingPlayerProps
 
       audioElement.play()
     } catch (error) {
-      console.error('Failed to play intro:', error)
+      console.error('Failed to play intro or generate question:', error)
       setIsPlayingIntro(false)
+      setIsLoadingQuestion(false)
       setActiveCheckpoint(checkpointIndex) // Show quiz anyway
     }
   }
@@ -258,21 +280,15 @@ export function EmployeeTrainingPlayer({ training }: EmployeeTrainingPlayerProps
     }
   }, [hasReachedEnd, completedCheckpoints.size, checkpoints.length, showCompletionOverlay, activeCheckpoint])
 
-  const handleCheckpointAnswer = async (answer: string) => {
-    // Call AI to evaluate the answer
+  const handleCheckpointAnswer = async (selectedAnswer: string, correctAnswer: string, explanation: string) => {
+    // Call API to evaluate the selected answer
     const response = await fetch('/api/training/evaluate-checkpoint', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        trainingId: training.id,
-        chapterIndex: activeCheckpoint,
-        question: getCheckpointQuestion(activeCheckpoint!),
-        answer,
-        context: {
-          sop: training.sop,
-          keyPoints: training.key_points,
-          transcript: training.transcript,
-        },
+        selectedAnswer,
+        correctAnswer,
+        explanation,
       }),
     })
 
@@ -289,6 +305,7 @@ export function EmployeeTrainingPlayer({ training }: EmployeeTrainingPlayerProps
       completedCheckpointsRef.current = newCompleted
 
       setActiveCheckpoint(null)
+      setCheckpointQuestion(null)
       setIsPaused(false)
 
       // Save progress immediately after completing checkpoint
@@ -418,9 +435,10 @@ export function EmployeeTrainingPlayer({ training }: EmployeeTrainingPlayerProps
               {/* Checkpoint Overlay */}
               {activeCheckpoint !== null && (
                 <CheckpointOverlay
-                  question={getCheckpointQuestion(activeCheckpoint)}
+                  questionData={checkpointQuestion}
                   onAnswer={handleCheckpointAnswer}
                   onContinue={handleContinueAfterCheckpoint}
+                  isLoadingQuestion={isLoadingQuestion}
                 />
               )}
 

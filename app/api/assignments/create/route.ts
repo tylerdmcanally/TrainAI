@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { sendTrainingAssignmentEmail } from '@/lib/email'
 
 export async function POST(request: Request) {
   try {
@@ -75,6 +76,52 @@ export async function POST(request: Request) {
     if (assignError) {
       console.error('Assignment error:', assignError)
       return NextResponse.json({ error: assignError.message }, { status: 500 })
+    }
+
+    // Send email notifications
+    if (assignments && assignments.length > 0) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+      // Get owner info for email
+      const { data: ownerProfile } = await supabase
+        .from('users')
+        .select('name')
+        .eq('id', user.id)
+        .single()
+
+      // Get employee details
+      const { data: employeeData } = await supabase
+        .from('users')
+        .select('name, email')
+        .eq('id', employeeId)
+        .single()
+
+      // Get training details
+      const { data: trainingDetails } = await supabase
+        .from('training_modules')
+        .select('id, title, description')
+        .in('id', trainingIds)
+
+      // Send emails for each training
+      const emailPromises = trainingDetails?.map(async (training) => {
+        try {
+          const trainingUrl = `${baseUrl}/dashboard/employee/training/${training.id}`
+
+          await sendTrainingAssignmentEmail({
+            to: employeeData?.email || '',
+            employeeName: employeeData?.name || '',
+            trainingTitle: training.title,
+            trainingDescription: training.description,
+            assignedBy: ownerProfile?.name || 'Your manager',
+            trainingUrl,
+          })
+        } catch (error) {
+          console.error(`Failed to send email for training ${training.id}:`, error)
+          // Don't fail the request if email fails
+        }
+      }) || []
+
+      await Promise.allSettled(emailPromises)
     }
 
     return NextResponse.json({

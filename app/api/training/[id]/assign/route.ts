@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sendTrainingAssignmentEmail } from '@/lib/email'
 
 export async function POST(
   request: NextRequest,
@@ -64,6 +65,44 @@ export async function POST(
         { error: 'Failed to create assignments' },
         { status: 500 }
       )
+    }
+
+    // Get owner info for email
+    const { data: ownerProfile } = await supabase
+      .from('users')
+      .select('name')
+      .eq('id', user.id)
+      .single()
+
+    // Send email notifications to each employee
+    if (data && data.length > 0) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      const trainingUrl = `${baseUrl}/dashboard/employee/training/${id}`
+
+      // Get employee details for emails
+      const { data: employees } = await supabase
+        .from('users')
+        .select('id, name, email')
+        .in('id', employeeIds)
+
+      // Send emails in parallel
+      const emailPromises = employees?.map(async (employee) => {
+        try {
+          await sendTrainingAssignmentEmail({
+            to: employee.email,
+            employeeName: employee.name,
+            trainingTitle: training.title,
+            trainingDescription: training.description,
+            assignedBy: ownerProfile?.name || 'Your manager',
+            trainingUrl,
+          })
+        } catch (error) {
+          console.error(`Failed to send email to ${employee.email}:`, error)
+          // Don't fail the request if email fails
+        }
+      }) || []
+
+      await Promise.allSettled(emailPromises)
     }
 
     return NextResponse.json({

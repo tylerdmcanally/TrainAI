@@ -4,23 +4,33 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 
-interface CheckpointOverlayProps {
+interface CheckpointQuestion {
   question: string
-  onAnswer: (answer: string) => Promise<{ correct: boolean; feedback: string }>
-  onContinue: () => void
+  options: Array<{ id: string; text: string }>
+  correctAnswer: string
+  explanation: string
 }
 
-export function CheckpointOverlay({ question, onAnswer, onContinue }: CheckpointOverlayProps) {
-  const [answer, setAnswer] = useState('')
+interface CheckpointOverlayProps {
+  questionData: CheckpointQuestion | null
+  onAnswer: (selectedAnswer: string, correctAnswer: string, explanation: string) => Promise<{ correct: boolean; feedback: string; audio?: string }>
+  onContinue: () => void
+  isLoadingQuestion: boolean
+}
+
+export function CheckpointOverlay({ questionData, onAnswer, onContinue, isLoadingQuestion }: CheckpointOverlayProps) {
+  const [selectedAnswer, setSelectedAnswer] = useState('')
   const [isChecking, setIsChecking] = useState(false)
   const [result, setResult] = useState<{ correct: boolean; feedback: string; audio?: string } | null>(null)
 
   const handleSubmit = async () => {
-    if (!answer.trim() || isChecking) return
+    if (!selectedAnswer || isChecking || !questionData) return
 
     setIsChecking(true)
-    const feedback = await onAnswer(answer)
+    const feedback = await onAnswer(selectedAnswer, questionData.correctAnswer, questionData.explanation)
     setResult(feedback)
     setIsChecking(false)
 
@@ -32,7 +42,7 @@ export function CheckpointOverlay({ question, onAnswer, onContinue }: Checkpoint
   }
 
   const handleContinue = () => {
-    setAnswer('')
+    setSelectedAnswer('')
     setResult(null)
     onContinue()
   }
@@ -49,25 +59,51 @@ export function CheckpointOverlay({ question, onAnswer, onContinue }: Checkpoint
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Question */}
-          <div className="bg-blue-50 rounded-lg p-4">
-            <p className="text-gray-900 font-medium">{question}</p>
-          </div>
+          {/* Loading State */}
+          {isLoadingQuestion && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              <span className="ml-3 text-gray-600">Generating question...</span>
+            </div>
+          )}
 
-          {/* Answer Input */}
-          {!result && (
-            <div className="space-y-4">
-              <textarea
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                placeholder="Type your answer here..."
-                className="w-full px-4 py-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={4}
-                disabled={isChecking}
-              />
+          {/* Question and Options */}
+          {!isLoadingQuestion && questionData && !result && (
+            <>
+              {/* Question */}
+              <div className="bg-blue-50 rounded-lg p-4">
+                <p className="text-gray-900 font-medium">{questionData.question}</p>
+              </div>
+
+              {/* Multiple Choice Options */}
+              <RadioGroup value={selectedAnswer} onValueChange={setSelectedAnswer}>
+                <div className="space-y-3">
+                  {questionData.options.map((option) => (
+                    <div
+                      key={option.id}
+                      className={`flex items-start space-x-3 p-4 rounded-lg border-2 transition-colors cursor-pointer ${
+                        selectedAnswer === option.id
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                      onClick={() => setSelectedAnswer(option.id)}
+                    >
+                      <RadioGroupItem value={option.id} id={option.id} className="mt-0.5" />
+                      <Label
+                        htmlFor={option.id}
+                        className="flex-1 cursor-pointer text-gray-900 font-medium"
+                      >
+                        <span className="font-bold text-blue-600 mr-2">{option.id}.</span>
+                        {option.text}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </RadioGroup>
+
               <Button
                 onClick={handleSubmit}
-                disabled={!answer.trim() || isChecking}
+                disabled={!selectedAnswer || isChecking}
                 className="w-full"
                 size="lg"
               >
@@ -80,7 +116,7 @@ export function CheckpointOverlay({ question, onAnswer, onContinue }: Checkpoint
                   'Submit Answer'
                 )}
               </Button>
-            </div>
+            </>
           )}
 
           {/* Result */}
@@ -115,9 +151,9 @@ export function CheckpointOverlay({ question, onAnswer, onContinue }: Checkpoint
           )}
 
           {/* Hint */}
-          {!result && (
+          {!isLoadingQuestion && !result && questionData && (
             <p className="text-xs text-gray-500 text-center">
-              💡 The AI will evaluate your answer and provide feedback
+              💡 Select the best answer and submit
             </p>
           )}
         </CardContent>

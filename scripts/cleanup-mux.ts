@@ -26,27 +26,40 @@ async function cleanupMuxAssets() {
 
     console.log(`Found ${assets.length} Mux assets`)
 
-    // Delete each asset
+    // Get all mux_asset_ids from database
+    const { data: trainings } = await supabase
+      .from('training_modules')
+      .select('mux_asset_id')
+      .not('mux_asset_id', 'is', null)
+
+    const validAssetIds = new Set(
+      trainings?.map(t => t.mux_asset_id).filter(Boolean) || []
+    )
+
+    console.log(`Found ${validAssetIds.size} assets referenced in database`)
+
+    let deletedCount = 0
+    let keptCount = 0
+
+    // Delete orphaned assets (not in database)
     for (const asset of assets) {
       try {
-        await mux.video.assets.delete(asset.id)
-        console.log(`✓ Deleted Mux asset: ${asset.id}`)
-
-        // Update database to remove mux references
-        await supabase
-          .from('training_modules')
-          .update({
-            mux_asset_id: null,
-            mux_playback_id: null
-          })
-          .eq('mux_asset_id', asset.id)
-
+        if (validAssetIds.has(asset.id)) {
+          console.log(`  Keeping asset ${asset.id} (in use)`)
+          keptCount++
+        } else {
+          await mux.video.assets.delete(asset.id)
+          console.log(`✓ Deleted orphaned asset: ${asset.id}`)
+          deletedCount++
+        }
       } catch (error: any) {
         console.error(`✗ Failed to delete asset ${asset.id}:`, error.message)
       }
     }
 
     console.log('\n✅ Cleanup complete!')
+    console.log(`   Deleted: ${deletedCount} orphaned assets`)
+    console.log(`   Kept: ${keptCount} assets in use`)
 
   } catch (error) {
     console.error('Cleanup error:', error)

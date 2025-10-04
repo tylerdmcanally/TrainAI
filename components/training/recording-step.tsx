@@ -27,12 +27,55 @@ export function RecordingStep({ data, onUpdate, onNext, onBack }: RecordingStepP
   const cameraPreviewRef = useRef<HTMLVideoElement | null>(null)
   const displayStreamRef = useRef<MediaStream | null>(null)
   const cameraStreamRef = useRef<MediaStream | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const animationFrameRef = useRef<number | null>(null)
 
   // Format time as MM:SS
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // Composite screen and camera video onto canvas
+  const startCompositing = (
+    screenVideo: HTMLVideoElement,
+    cameraVideo: HTMLVideoElement | null,
+    canvas: HTMLCanvasElement
+  ) => {
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const drawFrame = () => {
+      // Draw screen video (full canvas)
+      ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height)
+
+      // Draw camera video in bottom-right corner (if available)
+      if (cameraVideo && cameraVideo.readyState === cameraVideo.HAVE_ENOUGH_DATA) {
+        const cameraWidth = 240  // Width of camera overlay
+        const cameraHeight = 180 // Height of camera overlay (4:3 ratio)
+        const padding = 20       // Padding from edges
+
+        const x = canvas.width - cameraWidth - padding
+        const y = canvas.height - cameraHeight - padding
+
+        // Draw rounded rectangle background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
+        ctx.fillRect(x - 4, y - 4, cameraWidth + 8, cameraHeight + 8)
+
+        // Draw camera feed
+        ctx.drawImage(cameraVideo, x, y, cameraWidth, cameraHeight)
+
+        // Draw border
+        ctx.strokeStyle = 'white'
+        ctx.lineWidth = 2
+        ctx.strokeRect(x, y, cameraWidth, cameraHeight)
+      }
+
+      animationFrameRef.current = requestAnimationFrame(drawFrame)
+    }
+
+    drawFrame()
   }
 
   // Timer effect
@@ -60,15 +103,37 @@ export function RecordingStep({ data, onUpdate, onNext, onBack }: RecordingStepP
 
   // Video preview effect - runs when recording state changes and refs are available
   useEffect(() => {
-    if ((recordingState === 'recording' || recordingState === 'paused') && displayStreamRef.current) {
+    if ((recordingState === 'recording' || recordingState === 'paused') && streamRef.current) {
       if (videoPreviewRef.current && !videoPreviewRef.current.srcObject) {
-        videoPreviewRef.current.srcObject = displayStreamRef.current
-      }
-      if (cameraPreviewRef.current && cameraStreamRef.current && !cameraPreviewRef.current.srcObject) {
-        cameraPreviewRef.current.srcObject = cameraStreamRef.current
+        // If we're using canvas compositing, show the canvas stream
+        // Otherwise show the display stream
+        if (includeCamera && canvasRef.current) {
+          const canvasStream = canvasRef.current.captureStream(30)
+          videoPreviewRef.current.srcObject = canvasStream
+        } else {
+          videoPreviewRef.current.srcObject = displayStreamRef.current
+        }
       }
     }
-  }, [recordingState])
+  }, [recordingState, includeCamera])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current)
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop())
+      }
+      if (displayStreamRef.current) {
+        displayStreamRef.current.getTracks().forEach(track => track.stop())
+      }
+      if (cameraStreamRef.current) {
+        cameraStreamRef.current.getTracks().forEach(track => track.stop())
+      }
+    }
+  }, [])
 
   const startRecording = async () => {
     try {
@@ -78,19 +143,17 @@ export function RecordingStep({ data, onUpdate, onNext, onBack }: RecordingStepP
       chunksRef.current = []
 
       // Get screen stream with cursor
-      // Note: preferCurrentTab: false helps avoid suggesting THIS tab
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
         video: {
-          displaySurface: 'browser' as any, // Suggest browser tab first (easy for web apps)
+          displaySurface: 'browser' as any,
           width: { ideal: 1920 },
           height: { ideal: 1080 },
-          cursor: 'always' as any, // Always show cursor in recording
+          cursor: 'always' as any,
         },
         audio: true,
-        preferCurrentTab: false, // Don't suggest current tab
+        preferCurrentTab: false,
       })
 
-      // Store display stream in ref
       displayStreamRef.current = displayStream
 
       // Get microphone stream
@@ -112,7 +175,6 @@ export function RecordingStep({ data, onUpdate, onNext, onBack }: RecordingStepP
               facingMode: 'user',
             },
           })
-          // Store camera stream in ref
           cameraStreamRef.current = cameraStream
         } catch (err) {
           console.error('Camera error:', err)
@@ -120,15 +182,44 @@ export function RecordingStep({ data, onUpdate, onNext, onBack }: RecordingStepP
         }
       }
 
-      // Combine all streams
+      // If camera is included, composite video streams using canvas
+      let videoStream: MediaStream
+
+      if (includeCamera && cameraStream) {
+        // Create hidden video elements for source streams
+        const screenVideo = document.createElement('video')
+        screenVideo.srcObject = displayStream
+        screenVideo.muted = true
+        await screenVideo.play()
+
+        const cameraVideo = document.createElement('video')
+        cameraVideo.srcObject = cameraStream
+        cameraVideo.muted = true
+        await cameraVideo.play()
+
+        // Create canvas for compositing
+        const canvas = document.createElement('canvas')
+        canvas.width = 1920
+        canvas.height = 1080
+        canvasRef.current = canvas
+
+        // Start drawing both streams onto canvas
+        startCompositing(screenVideo, cameraVideo, canvas)
+
+        // Capture canvas as video stream
+        const canvasStream = canvas.captureStream(30) // 30 fps
+        videoStream = canvasStream
+      } else {
+        // No camera, just use screen stream directly
+        videoStream = displayStream
+      }
+
+      // Combine video stream with audio
       const tracks = [
-        ...displayStream.getVideoTracks(),
+        ...videoStream.getVideoTracks(),
+        ...displayStream.getAudioTracks(),
         ...audioStream.getAudioTracks(),
       ]
-
-      if (cameraStream) {
-        tracks.push(...cameraStream.getVideoTracks())
-      }
 
       const combinedStream = new MediaStream(tracks)
       streamRef.current = combinedStream
@@ -149,7 +240,7 @@ export function RecordingStep({ data, onUpdate, onNext, onBack }: RecordingStepP
         const videoUrl = URL.createObjectURL(blob)
         onUpdate({ videoBlob: blob, videoDuration: elapsedTimeRef.current, videoUrl })
 
-        // Stop all tracks
+        // Stop all tracks and cleanup
         if (streamRef.current) {
           streamRef.current.getTracks().forEach(track => track.stop())
         }
@@ -159,13 +250,14 @@ export function RecordingStep({ data, onUpdate, onNext, onBack }: RecordingStepP
         if (cameraStreamRef.current) {
           cameraStreamRef.current.getTracks().forEach(track => track.stop())
         }
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current)
+        }
       }
 
       mediaRecorderRef.current = mediaRecorder
       mediaRecorder.start(1000) // Capture every second
 
-      // Set recording state AFTER setting up streams
-      // This will trigger the useEffect to assign srcObject to video elements
       setRecordingState('recording')
     } catch (error) {
       console.error('Error starting recording:', error)
@@ -231,19 +323,6 @@ export function RecordingStep({ data, onUpdate, onNext, onBack }: RecordingStepP
                 muted
                 playsInline
               />
-
-              {/* Camera overlay */}
-              {includeCamera && (
-                <div className="absolute bottom-4 right-4 w-48 h-36 rounded-lg overflow-hidden border-2 border-white shadow-lg">
-                  <video
-                    ref={cameraPreviewRef}
-                    className="w-full h-full object-cover"
-                    autoPlay
-                    muted
-                    playsInline
-                  />
-                </div>
-              )}
 
               {/* Recording indicator */}
               <div className="absolute top-4 left-4 flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-full">
@@ -348,16 +427,18 @@ export function RecordingStep({ data, onUpdate, onNext, onBack }: RecordingStepP
         </div>
 
         {/* Recording Controls */}
-        <div className="flex items-center justify-center gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {recordingState === 'idle' && (
-            <Button size="lg" onClick={startRecording} className="gap-2">
-              <Circle className="h-5 w-5 fill-current" />
-              Start Recording
-            </Button>
+            <div className="lg:col-span-2 flex justify-center -mt-2">
+              <Button size="lg" onClick={startRecording} className="gap-2">
+                <Circle className="h-5 w-5 fill-current" />
+                Start Recording
+              </Button>
+            </div>
           )}
 
           {recordingState === 'recording' && (
-            <>
+            <div className="lg:col-span-3 flex items-center justify-center gap-4">
               <Button size="lg" variant="outline" onClick={pauseRecording} className="gap-2">
                 <Pause className="h-5 w-5" />
                 Pause
@@ -366,11 +447,11 @@ export function RecordingStep({ data, onUpdate, onNext, onBack }: RecordingStepP
                 <Square className="h-5 w-5" />
                 Stop & Finish
               </Button>
-            </>
+            </div>
           )}
 
           {recordingState === 'paused' && (
-            <>
+            <div className="lg:col-span-3 flex items-center justify-center gap-4">
               <Button size="lg" onClick={resumeRecording} className="gap-2">
                 <Play className="h-5 w-5" />
                 Resume
@@ -379,7 +460,7 @@ export function RecordingStep({ data, onUpdate, onNext, onBack }: RecordingStepP
                 <Square className="h-5 w-5" />
                 Stop & Finish
               </Button>
-            </>
+            </div>
           )}
         </div>
 

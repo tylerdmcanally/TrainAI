@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Loader2, UserPlus } from 'lucide-react'
+import { Loader2, UserPlus, X } from 'lucide-react'
 
 interface AssignTrainingDialogProps {
   trainingId: string
@@ -107,8 +107,9 @@ export function AssignTrainingDialog({
     }
   }
 
-  const isAssigned = (employeeId: string) => {
-    return assignments.some((a) => a.employee_id === employeeId)
+  const getAssignmentStatus = (employeeId: string) => {
+    const assignment = assignments.find((a) => a.employee_id === employeeId)
+    return assignment?.status || null
   }
 
   const toggleEmployee = (employeeId: string) => {
@@ -121,13 +122,38 @@ export function AssignTrainingDialog({
     setSelectedEmployees(newSelected)
   }
 
+  const handleUnassign = async (employeeId: string) => {
+    setError(null)
+
+    try {
+      const response = await fetch('/api/assignments/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employeeId,
+          trainingId,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to un-assign training')
+      }
+
+      // Reload assignments
+      await loadData()
+    } catch (err) {
+      console.error('Un-assign error:', err)
+      setError('Failed to un-assign training')
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Assign Training</DialogTitle>
           <DialogDescription>
-            Assign &quot;{trainingTitle}&quot; to employees in your company
+            Select employees to assign &quot;{trainingTitle}&quot; to. You can assign to multiple employees and reassign at any time.
           </DialogDescription>
         </DialogHeader>
 
@@ -143,36 +169,55 @@ export function AssignTrainingDialog({
           ) : (
             <div className="space-y-2">
               {employees.map((employee) => {
-                const assigned = isAssigned(employee.id)
+                const status = getAssignmentStatus(employee.id)
                 const selected = selectedEmployees.has(employee.id)
 
                 return (
                   <div
                     key={employee.id}
                     className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                      assigned
-                        ? 'bg-green-50 border-green-200'
-                        : selected
+                      !status && selected
                         ? 'bg-blue-50 border-blue-200'
                         : 'hover:bg-gray-50 border-gray-200'
                     }`}
                   >
                     <div className="flex-1">
-                      <div className="font-medium text-gray-900">{employee.name}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900">{employee.name}</span>
+                        {status && (
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full ${
+                              status === 'completed'
+                                ? 'bg-green-100 text-green-700'
+                                : status === 'in_progress'
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'bg-gray-100 text-gray-700'
+                            }`}
+                          >
+                            {status === 'completed' ? 'Completed' : status === 'in_progress' ? 'In Progress' : 'Not Started'}
+                          </span>
+                        )}
+                      </div>
                       <div className="text-sm text-gray-500">{employee.email}</div>
                     </div>
 
-                    {assigned ? (
-                      <span className="text-sm text-green-600 font-medium">
-                        ✓ Assigned
-                      </span>
-                    ) : (
+                    {!status ? (
                       <input
                         type="checkbox"
                         checked={selected}
                         onChange={() => toggleEmployee(employee.id)}
                         className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
                       />
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleUnassign(employee.id)}
+                        className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <X className="h-4 w-4" />
+                        Un-assign
+                      </Button>
                     )}
                   </div>
                 )

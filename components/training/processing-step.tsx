@@ -117,8 +117,8 @@ export function ProcessingStep({ data, onUpdate, onNext }: ProcessingStepProps) 
         })
 
         if (muxResponse.ok) {
-          const { playbackId } = await muxResponse.json()
-          onUpdate({ muxPlaybackId: playbackId })
+          const { playbackId, assetId } = await muxResponse.json()
+          onUpdate({ muxPlaybackId: playbackId, muxAssetId: assetId })
           setProgress(95)
         } else if (muxResponse.status === 402) {
           // Mux plan limit reached - show error to user

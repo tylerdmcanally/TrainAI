@@ -15,6 +15,7 @@ export type TrainingData = {
   videoUrl?: string
   videoStorageUrl?: string
   muxPlaybackId?: string
+  muxAssetId?: string
   videoDuration: number
   transcript?: string
   chapters?: Array<{ title: string; start_time: number; end_time: number }>
@@ -49,8 +50,8 @@ export default function CreateTrainingPage() {
               const isCompleted = step > stepNumber
 
               return (
-                <div key={label} className="flex items-center flex-1">
-                  <div className="flex flex-col items-center flex-1">
+                <div key={label} className="flex items-center" style={{ flex: index < 4 ? '1' : '0 0 auto' }}>
+                  <div className="flex flex-col items-center">
                     <div
                       className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors ${
                         isActive
@@ -63,7 +64,7 @@ export default function CreateTrainingPage() {
                       {isCompleted ? '✓' : stepNumber}
                     </div>
                     <span
-                      className={`text-sm mt-2 ${
+                      className={`text-sm mt-2 whitespace-nowrap ${
                         isActive ? 'text-blue-600 font-medium' : 'text-gray-600'
                       }`}
                     >
@@ -72,7 +73,7 @@ export default function CreateTrainingPage() {
                   </div>
                   {index < 4 && (
                     <div
-                      className={`h-1 flex-1 -mt-6 transition-colors ${
+                      className={`h-1 flex-1 -mt-6 mx-2 transition-colors ${
                         isCompleted ? 'bg-green-500' : 'bg-gray-200'
                       }`}
                     />

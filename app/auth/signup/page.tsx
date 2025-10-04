@@ -89,10 +89,14 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-gray-50 flex items-center justify-center p-8">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-blue-200 via-purple-200 to-blue-100 flex items-center justify-center p-8">
+      <Card className="w-full max-w-md border-blue-100 shadow-xl">
         <CardHeader className="text-center">
-          <div className="mx-auto h-12 w-12 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 mb-4" />
+          <img
+            src="/logo.png"
+            alt="TrainAI Logo"
+            className="mx-auto h-48 w-48 mb-2"
+          />
           <CardTitle className="text-2xl">Create your account</CardTitle>
           <CardDescription>Start creating AI-powered training in minutes</CardDescription>
         </CardHeader>

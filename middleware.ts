@@ -93,6 +93,11 @@ export async function middleware(request: NextRequest) {
 
   // Auth routes - only redirect if user has a complete profile
   if (request.nextUrl.pathname.startsWith('/auth')) {
+    // Allow logout page to process without redirect
+    if (request.nextUrl.pathname === '/auth/logout') {
+      return response
+    }
+
     if (user) {
       // Check if user has a complete profile
       const { data: profile, error } = await supabase

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { AssignTrainingButton } from '@/components/employees/assign-training-button'
 import { RemoveEmployeeButton } from '@/components/employees/remove-employee-button'
+import { UnassignTrainingButton } from '@/components/employees/unassign-training-button'
 
 interface PageProps {
   params: {
@@ -244,11 +245,14 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
                           )}
                         </div>
 
-                        <Link href={`/dashboard/training/${training.id}`}>
-                          <Button variant="outline" size="sm" className="ml-4">
-                            View Training
-                          </Button>
-                        </Link>
+                        <div className="flex gap-2 ml-4">
+                          <Link href={`/dashboard/training/${training.id}`}>
+                            <Button variant="outline" size="sm">
+                              View Training
+                            </Button>
+                          </Link>
+                          <UnassignTrainingButton employeeId={employee.id} trainingId={training.id} />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

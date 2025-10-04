@@ -37,8 +37,6 @@ export async function GET() {
       )
     }
 
-    console.log('Fetching employees for company:', userData.company_id)
-
     // Get all employees in the company (excluding owners)
     const { data: employees, error: employeesError } = await supabase
       .from('users')
@@ -46,8 +44,6 @@ export async function GET() {
       .eq('company_id', userData.company_id)
       .eq('role', 'employee')
       .order('name')
-
-    console.log('Employees query result:', employees, 'Error:', employeesError)
 
     if (employeesError) {
       console.error('Error fetching employees:', employeesError)
@@ -69,8 +65,6 @@ export async function GET() {
         .from('users')
         .select('id, email, name, role, company_id')
         .eq('role', 'employee')
-
-      console.log('Admin client found employees:', adminEmployees)
 
       return NextResponse.json(
         { error: 'Failed to fetch employees', debug: { adminEmployees } },

@@ -49,6 +49,36 @@ export default async function OwnerDashboardPage() {
     .eq('company_id', profile.company_id)
     .eq('role', 'employee')
 
+  // Fetch all assignments for analytics
+  const { data: allAssignments } = await supabase
+    .from('assignments')
+    .select(`
+      *,
+      training_modules(id, title),
+      users!assignments_employee_id_fkey(id, name, email)
+    `)
+    .eq('assigned_by', user.id)
+    .order('completed_at', { ascending: false })
+
+  // Fetch recent completions (last 10)
+  const { data: recentCompletions } = await supabase
+    .from('assignments')
+    .select(`
+      *,
+      training_modules(id, title),
+      users!assignments_employee_id_fkey(id, name, email)
+    `)
+    .eq('assigned_by', user.id)
+    .eq('status', 'completed')
+    .order('completed_at', { ascending: false })
+    .limit(10)
+
+  // Calculate assignment stats
+  const totalAssignments = allAssignments?.length || 0
+  const completedAssignments = allAssignments?.filter(a => a.status === 'completed').length || 0
+  const inProgressAssignments = allAssignments?.filter(a => a.status === 'in_progress').length || 0
+  const completionRate = totalAssignments > 0 ? Math.round((completedAssignments / totalAssignments) * 100) : 0
+
   // Calculate stats
   const stats = [
     {
@@ -59,22 +89,22 @@ export default async function OwnerDashboardPage() {
       bgColor: 'bg-blue-50'
     },
     {
-      name: 'Published',
-      value: trainings?.filter(t => t.status === 'published').length || 0,
+      name: 'Total Assignments',
+      value: totalAssignments,
       icon: CheckCircle2,
       color: 'text-green-600',
       bgColor: 'bg-green-50'
     },
     {
-      name: 'Total Duration',
-      value: `${Math.round((trainings?.reduce((sum, t) => sum + (t.video_duration || 0), 0) || 0) / 60)}m`,
+      name: 'Completion Rate',
+      value: `${completionRate}%`,
       icon: Clock,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50'
     },
     {
       name: 'Team Members',
-      value: company?.employee_count || 0,
+      value: employees?.length || 0,
       icon: Users,
       color: 'text-orange-600',
       bgColor: 'bg-orange-50'
@@ -191,6 +221,35 @@ export default async function OwnerDashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Recent Activity */}
+        {recentCompletions && recentCompletions.length > 0 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>Latest training completions from your team</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {recentCompletions.map((completion: any) => (
+                  <div key={completion.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {(completion.users as any)?.name} completed <span className="text-blue-600">{(completion.training_modules as any)?.title}</span>
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {completion.completed_at && formatDate(completion.completed_at)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Trainings List */}
         <div className="mb-6">

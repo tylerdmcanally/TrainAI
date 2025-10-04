@@ -32,6 +32,7 @@ export function PublishStep({ data, onBack }: PublishStepProps) {
           videoDuration: data.videoDuration,
           videoStorageUrl: data.videoStorageUrl,
           muxPlaybackId: data.muxPlaybackId,
+          muxAssetId: data.muxAssetId,
           transcript: data.transcript,
           chapters: data.chapters,
           sop: data.sop,
