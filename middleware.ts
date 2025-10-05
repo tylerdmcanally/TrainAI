@@ -23,9 +23,14 @@ export async function middleware(request: NextRequest) {
   })
 
   // Get auth tokens from cookies (Edge Runtime compatible)
-  const accessToken = request.cookies.get('sb-access-token')?.value
-  const refreshToken = request.cookies.get('sb-refresh-token')?.value
-  const hasAuthTokens = !!(accessToken || refreshToken)
+  // Check for Supabase auth cookies - they typically follow the pattern sb-{project-ref}-auth-token
+  const allCookies = request.cookies.getAll()
+  const supabaseAuthCookie = allCookies.find(cookie => 
+    cookie.name.startsWith('sb-') && cookie.name.includes('auth-token')
+  )
+  
+  // Check if we have any Supabase authentication cookie
+  const hasAuthTokens = !!supabaseAuthCookie
 
   // Protected routes - require authentication
   if (path.startsWith('/dashboard')) {

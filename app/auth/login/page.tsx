@@ -24,7 +24,7 @@ export default function LoginPage() {
     try {
       const supabase = createClient()
 
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
@@ -32,6 +32,11 @@ export default function LoginPage() {
       if (error) {
         throw error
       }
+
+      console.log('Login successful:', data)
+
+      // Wait a moment for cookies to be set
+      await new Promise(resolve => setTimeout(resolve, 100))
 
       // Redirect to /dashboard - middleware will route to correct dashboard based on role
       router.push('/dashboard')

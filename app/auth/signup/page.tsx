@@ -78,6 +78,11 @@ export default function SignUpPage() {
         throw profileError
       }
 
+      console.log('Signup successful:', { user: authData.user, company })
+
+      // Wait a moment for cookies to be set
+      await new Promise(resolve => setTimeout(resolve, 100))
+
       // Success! Redirect to owner dashboard
       router.push('/dashboard/owner')
       router.refresh()
