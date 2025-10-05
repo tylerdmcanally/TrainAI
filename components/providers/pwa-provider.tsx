@@ -19,6 +19,8 @@ export function PWAProvider({ children }: PWAProviderProps) {
     pwaService.initialize().then(() => {
       setIsInstalled(pwaService.isInstalled())
       setIsPWAMode(pwaService.isPWAMode())
+    }).catch((error) => {
+      console.error('PWA initialization failed:', error)
     })
 
     // Listen for install prompt
