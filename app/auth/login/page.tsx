@@ -24,24 +24,50 @@ export default function LoginPage() {
     try {
       const supabase = createClient()
 
+      console.log('Attempting login with:', { email })
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
+      console.log('Login response:', { data, error })
+
       if (error) {
+        console.error('Login error:', error)
         throw error
       }
 
       console.log('Login successful:', data)
 
+      // Verify user profile exists
+      if (data.user) {
+        console.log('Fetching user profile...')
+        const { data: profile, error: profileError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data.user.id)
+          .single()
+
+        console.log('Profile fetch response:', { profile, profileError })
+
+        if (profileError) {
+          console.warn('Profile fetch failed:', profileError)
+          // Don't throw here - user might still be able to access the app
+        } else {
+          console.log('User profile found:', profile)
+        }
+      }
+
       // Wait a moment for cookies to be set
       await new Promise(resolve => setTimeout(resolve, 100))
 
       // Redirect to /dashboard - middleware will route to correct dashboard based on role
+      console.log('Redirecting to dashboard...')
       router.push('/dashboard')
       router.refresh()
     } catch (err: any) {
+      console.error('Login failed:', err)
       setError(err.message || 'Failed to log in')
     } finally {
       setLoading(false)
