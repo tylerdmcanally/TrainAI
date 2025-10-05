@@ -1,9 +1,19 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { TrainingData } from '@/app/dashboard/training/create/page'
-import { Loader2, CheckCircle2, FileText, Brain, Clock } from 'lucide-react'
+import { Loader2, CheckCircle2, FileText, Brain, Clock, AlertTriangle, RefreshCw } from 'lucide-react'
+import { useToastNotifications } from '@/components/ui/toast'
+import { 
+  createAppError, 
+  getErrorMessage, 
+  isRetryableError, 
+  withRetry, 
+  validateFileUpload,
+  ERROR_CODES 
+} from '@/lib/utils/error-handler'
 
 interface ProcessingStepProps {
   data: TrainingData
@@ -18,6 +28,9 @@ export function ProcessingStep({ data, onUpdate, onNext }: ProcessingStepProps) 
   const [stage, setStage] = useState<ProcessingStage>('transcribing')
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [isRetrying, setIsRetrying] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
+  const { showError, showSuccess } = useToastNotifications()
 
   useEffect(() => {
     processRecording()

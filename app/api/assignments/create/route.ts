@@ -130,10 +130,10 @@ export async function POST(request: Request) {
       message: `Successfully assigned ${assignments.length} training(s)`
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating assignments:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to create assignments' },
+      { error: error instanceof Error ? error.message : 'Failed to create assignments' },
       { status: 500 }
     )
   }

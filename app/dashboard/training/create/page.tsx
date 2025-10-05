@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { SetupStep } from '@/components/training/setup-step'
 import { RecordingStep } from '@/components/training/recording-step'
-import { ProcessingStep } from '@/components/training/processing-step'
+import { ProcessingStepEnhanced } from '@/components/training/processing-step-enhanced'
 import { ReviewStep } from '@/components/training/review-step'
 import { PublishStep } from '@/components/training/publish-step'
 
@@ -102,7 +102,7 @@ export default function CreateTrainingPage() {
             />
           )}
           {step === 3 && (
-            <ProcessingStep
+            <ProcessingStepEnhanced
               data={trainingData}
               onUpdate={updateTrainingData}
               onNext={nextStep}

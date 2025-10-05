@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     }
 
     // First check if the assignment exists
-    const { data: existingAssignment, error: checkError } = await supabase
+    const { data: existingAssignment } = await supabase
       .from('assignments')
       .select('*')
       .eq('module_id', trainingId)
@@ -84,10 +84,10 @@ export async function POST(request: Request) {
       message: 'Training un-assigned successfully'
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting assignment:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to un-assign training' },
+      { error: error instanceof Error ? error.message : 'Failed to un-assign training' },
       { status: 500 }
     )
   }

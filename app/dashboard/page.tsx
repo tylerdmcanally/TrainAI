@@ -38,8 +38,8 @@ export default async function DashboardPage() {
   const isOwner = profile.role === 'owner'
 
   // Fetch trainings based on role
-  let trainings: any[] = []
-  let assignments: any[] = []
+  let trainings: unknown[] = []
+  let assignments: unknown[] = []
 
   if (isOwner) {
     // Owners see all trainings they created
