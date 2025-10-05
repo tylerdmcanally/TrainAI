@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { pwaService } from '@/lib/utils/pwa'
 import { Button } from '@/components/ui/button'
 import { Download, X, RefreshCw } from 'lucide-react'
 
@@ -13,15 +12,35 @@ export function PWAProvider({ children }: PWAProviderProps) {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
   const [isInstalled, setIsInstalled] = useState(false)
   const [isPWAMode, setIsPWAMode] = useState(false)
+  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
-    // Initialize PWA service
-    pwaService.initialize().then(() => {
-      setIsInstalled(pwaService.isInstalled())
-      setIsPWAMode(pwaService.isPWAMode())
-    }).catch((error) => {
-      console.error('PWA initialization failed:', error)
-    })
+    // Ensure we're running client-side only
+    setIsClient(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isClient) return
+
+    // Initialize PWA features safely
+    const initializePWA = async () => {
+      try {
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+          const registration = await navigator.serviceWorker.register('/sw.js')
+          console.log('Service Worker registered:', registration)
+        }
+
+        // Check if app is installed
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+        setIsInstalled(isStandalone)
+        setIsPWAMode(isStandalone)
+      } catch (error) {
+        console.error('PWA initialization failed:', error)
+      }
+    }
+
+    initializePWA()
 
     // Listen for install prompt
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -45,9 +64,21 @@ export function PWAProvider({ children }: PWAProviderProps) {
   }, [])
 
   const handleInstall = async () => {
-    const success = await pwaService.showInstallPrompt()
-    if (success) {
-      setShowInstallPrompt(false)
+    try {
+      // Check if install prompt is available
+      if (typeof window !== 'undefined' && (window as any).deferredPrompt) {
+        const deferredPrompt = (window as any).deferredPrompt
+        deferredPrompt.prompt()
+        const { outcome } = await deferredPrompt.userChoice
+        
+        if (outcome === 'accepted') {
+          console.log('PWA installed')
+          setShowInstallPrompt(false)
+          setIsInstalled(true)
+        }
+      }
+    } catch (error) {
+      console.error('PWA install failed:', error)
     }
   }
 

@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { ToastProvider } from "@/components/ui/toast";
-// import { PWAProvider } from "@/components/providers/pwa-provider";
+import { PWAProvider } from "@/components/providers/pwa-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -63,7 +63,9 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased`}>
         <ErrorBoundary>
           <ToastProvider>
-            {children}
+            <PWAProvider>
+              {children}
+            </PWAProvider>
           </ToastProvider>
         </ErrorBoundary>
       </body>
