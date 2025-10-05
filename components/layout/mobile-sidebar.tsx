@@ -131,28 +131,33 @@ export function MobileSidebar() {
 
           {/* User section */}
           <div className="border-t p-4">
-            {!loading && profile && (
-              <>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white font-semibold text-sm">
-                    {getInitials(profile.name)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{profile.name}</p>
-                    <p className="text-xs text-gray-500 truncate">{profile.email}</p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start py-3"
-                  size="sm"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </Button>
-              </>
-            )}
+            {/* DEBUG: Always show user section to test display */}
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white font-semibold text-sm">
+                {profile ? getInitials(profile.name) : '??'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {profile?.name || 'Loading...'}
+                </p>
+                <p className="text-xs text-gray-500 truncate">
+                  {profile?.email || 'No email'}
+                </p>
+                {/* DEBUG INFO */}
+                <p className="text-xs text-red-500 truncate">
+                  DEBUG: loading={loading.toString()}, profile={profile ? 'exists' : 'null'}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              className="w-full justify-start py-3"
+              size="sm"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
           </div>
         </div>
       </>
@@ -200,28 +205,33 @@ export function MobileSidebar() {
 
       {/* User section */}
       <div className="border-t p-4">
-        {!loading && profile && (
-          <>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white font-semibold text-sm">
-                {getInitials(profile.name)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{profile.name}</p>
-                <p className="text-xs text-gray-500 truncate">{profile.email}</p>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              size="sm"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
-          </>
-        )}
+        {/* DEBUG: Always show user section to test display */}
+        <div className="flex items-center gap-3 mb-3">
+          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white font-semibold text-sm">
+            {profile ? getInitials(profile.name) : '??'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {profile?.name || 'Loading...'}
+            </p>
+            <p className="text-xs text-gray-500 truncate">
+              {profile?.email || 'No email'}
+            </p>
+            {/* DEBUG INFO */}
+            <p className="text-xs text-red-500 truncate">
+              DEBUG: loading={loading.toString()}, profile={profile ? 'exists' : 'null'}
+            </p>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
+          size="sm"
+          onClick={handleLogout}
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Logout
+        </Button>
       </div>
     </div>
   )
