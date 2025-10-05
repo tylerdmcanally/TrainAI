@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
-export default function EmployeeSignUpPage() {
+function EmployeeSignUpForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const companyId = searchParams.get('company')
@@ -202,5 +202,13 @@ export default function EmployeeSignUpPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function EmployeeSignUpPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <EmployeeSignUpForm />
+    </Suspense>
   )
 }

@@ -1,6 +1,5 @@
 // lib/services/background-jobs.ts
 
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export type JobType = 'transcription' | 'sop_generation' | 'mux_upload' | 'tts_generation' | 'checkpoint_evaluation'
@@ -49,11 +48,9 @@ export interface UpdateJobOptions {
 }
 
 export class BackgroundJobService {
-  private supabase: ReturnType<typeof createClient>
   private adminSupabase: ReturnType<typeof createAdminClient>
 
   constructor() {
-    this.supabase = createClient()
     this.adminSupabase = createAdminClient()
   }
 
@@ -72,7 +69,7 @@ export class BackgroundJobService {
       maxRetries = 3
     } = options
 
-    const { data, error } = await this.supabase.rpc('create_background_job', {
+    const { data, error } = await this.adminSupabase.rpc('create_background_job', {
       p_user_id: userId,
       p_company_id: companyId,
       p_job_type: jobType,
@@ -102,7 +99,7 @@ export class BackgroundJobService {
       errorData
     } = options
 
-    const { data, error } = await this.supabase.rpc('update_job_status', {
+    const { data, error } = await this.adminSupabase.rpc('update_job_status', {
       p_job_id: jobId,
       p_status: status || null,
       p_progress_percentage: progressPercentage || null,
@@ -122,7 +119,7 @@ export class BackgroundJobService {
    * Get job by ID
    */
   async getJob(jobId: string): Promise<BackgroundJob | null> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.adminSupabase
       .from('background_jobs')
       .select('*')
       .eq('id', jobId)
@@ -142,7 +139,7 @@ export class BackgroundJobService {
    * Get jobs for a user
    */
   async getUserJobs(userId: string, limit = 50): Promise<BackgroundJob[]> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.adminSupabase
       .from('background_jobs')
       .select('*')
       .eq('user_id', userId)
@@ -160,7 +157,7 @@ export class BackgroundJobService {
    * Get jobs for a training module
    */
   async getTrainingJobs(trainingModuleId: string): Promise<BackgroundJob[]> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.adminSupabase
       .from('background_jobs')
       .select('*')
       .eq('training_module_id', trainingModuleId)
@@ -191,7 +188,7 @@ export class BackgroundJobService {
    * Schedule job retry
    */
   async scheduleRetry(jobId: string, delayMinutes = 5): Promise<boolean> {
-    const { data, error } = await this.supabase.rpc('schedule_job_retry', {
+    const { data, error } = await this.adminSupabase.rpc('schedule_job_retry', {
       p_job_id: jobId,
       p_retry_delay_minutes: delayMinutes
     })
