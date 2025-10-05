@@ -29,8 +29,6 @@ export default function SignUpPage() {
       const supabase = createClient()
 
       // 1. Create auth user
-      console.log('Attempting signup with:', { email: formData.email, name: formData.name, companyName: formData.companyName })
-      
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -42,10 +40,7 @@ export default function SignUpPage() {
         },
       })
 
-      console.log('Auth signup response:', { authData, authError })
-
       if (authError) {
-        console.error('Auth signup error:', authError)
         throw authError
       }
 
@@ -54,7 +49,6 @@ export default function SignUpPage() {
       }
 
       // 2. Create company record
-      console.log('Creating company record...')
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .insert({
@@ -65,15 +59,11 @@ export default function SignUpPage() {
         .select()
         .single()
 
-      console.log('Company creation response:', { company, companyError })
-
       if (companyError) {
-        console.error('Company creation error:', companyError)
         throw companyError
       }
 
       // 3. Create user profile
-      console.log('Creating user profile...')
       const { error: profileError } = await supabase
         .from('users')
         .insert({
@@ -84,14 +74,9 @@ export default function SignUpPage() {
           company_id: company.id,
         })
 
-      console.log('User profile creation response:', { profileError })
-
       if (profileError) {
-        console.error('User profile creation error:', profileError)
         throw profileError
       }
-
-      console.log('Signup successful:', { user: authData.user, company })
 
       // Wait a moment for cookies to be set
       await new Promise(resolve => setTimeout(resolve, 100))
