@@ -15,8 +15,14 @@ export default function TestAuthPage() {
         const supabase = createClient()
         console.log('✅ Supabase client created')
         
-        // Test auth call
-        const { data: { user }, error } = await supabase.auth.getUser()
+        // Test auth call with timeout
+        console.log('🔄 Starting auth call...')
+        const authPromise = supabase.auth.getUser()
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Auth call timeout')), 3000)
+        )
+        
+        const { data: { user }, error } = await Promise.race([authPromise, timeoutPromise])
         console.log('✅ Auth call completed:', { user: !!user, error })
         
         if (error) {
