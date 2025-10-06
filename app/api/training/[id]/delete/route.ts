@@ -15,10 +15,10 @@ const getMuxClient = () => {
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
+    const { id } = params
     const supabase = await createClient()
 
     // Check authentication
@@ -68,7 +68,7 @@ export async function DELETE(
           try {
             await mux.video.assets.delete(muxData.mux_asset_id)
             console.log('Deleted Mux asset:', muxData.mux_asset_id)
-          } catch (muxError: any) {
+          } catch (muxError: unknown) {
             console.error('Mux delete error:', muxError)
             // Continue with database deletion even if Mux fails
           }

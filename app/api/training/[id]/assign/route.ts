@@ -4,10 +4,10 @@ import { sendTrainingAssignmentEmail } from '@/lib/email'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
+    const { id } = params
     const { employeeIds } = await request.json()
 
     if (!employeeIds || !Array.isArray(employeeIds) || employeeIds.length === 0) {

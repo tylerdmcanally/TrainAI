@@ -3,7 +3,7 @@ import Mux from '@mux/mux-node'
 
 export async function POST(request: NextRequest) {
   try {
-    const { videoUrl } = await request.json()
+    const { videoUrl } = parseRequest(await request.json())
 
     if (!videoUrl) {
       return NextResponse.json(
@@ -39,20 +39,36 @@ export async function POST(request: NextRequest) {
       assetId: asset.id,
       status: asset.status,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Mux upload error:', error)
 
-    // Check for Mux plan limit error
-    if (error?.message?.includes('Free plan is limited to')) {
+    const message = error instanceof Error ? error.message : 'Failed to upload to Mux'
+
+    if (message.includes('Free plan is limited to')) {
       return NextResponse.json(
         { error: 'Mux free plan limit reached (10 videos max). Please delete old trainings or upgrade your Mux plan.' },
-        { status: 402 } // Payment Required
+        { status: 402 }
       )
     }
 
     return NextResponse.json(
-      { error: error?.message || 'Failed to upload to Mux' },
+      { error: message },
       { status: 500 }
     )
   }
+}
+
+function parseRequest(body: unknown): { videoUrl: string } {
+  if (typeof body !== 'object' || body === null) {
+    throw new Error('Invalid request body')
+  }
+
+  const record = body as Record<string, unknown>
+  const videoUrl = typeof record.videoUrl === 'string' ? record.videoUrl : ''
+
+  if (!videoUrl) {
+    throw new Error('Video URL is required')
+  }
+
+  return { videoUrl }
 }

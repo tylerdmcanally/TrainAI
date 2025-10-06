@@ -11,6 +11,7 @@ import { BrandingSettings } from './branding-settings'
 import { SecuritySettings } from './security-settings'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import type { SettingsSection } from './types'
 
 interface SettingsContentProps {
   user: User
@@ -20,22 +21,15 @@ interface SettingsContentProps {
     name: string
     email: string
   }
+  activeSection: SettingsSection
 }
 
-type SettingsSection = 
-  | 'profile'
-  | 'notifications'
-  | 'training'
-  | 'privacy'
-  | 'company'
-  | 'branding'
-  | 'security'
-
-export function SettingsContent({ user, profile }: SettingsContentProps) {
-  const [activeSection, setActiveSection] = useState<SettingsSection>('profile')
+export function SettingsContent({ user, profile, activeSection }: SettingsContentProps) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    setIsLoading(true)
+
     // Simulate loading time for settings data
     const timer = setTimeout(() => {
       setIsLoading(false)

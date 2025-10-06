@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -31,8 +32,9 @@ export default function ForgotPasswordPage() {
       }
 
       setSuccess(true)
-    } catch (err: any) {
-      setError(err.message || 'Failed to send reset email')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to send reset email'
+      setError(message)
     } finally {
       setLoading(false)
     }
@@ -48,7 +50,7 @@ export default function ForgotPasswordPage() {
             </div>
             <CardTitle className="text-2xl">Check your email</CardTitle>
             <CardDescription>
-              We've sent a password reset link to <strong>{email}</strong>
+              We&apos;ve sent a password reset link to <strong>{email}</strong>
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -73,14 +75,19 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-200 via-purple-200 to-blue-100 flex items-center justify-center p-8">
       <Card className="w-full max-w-md border-blue-100 shadow-xl">
         <CardHeader className="text-center">
-          <img
-            src="/logo.png"
-            alt="TrainAI Logo"
-            className="mx-auto h-48 w-48 mb-2"
-          />
+          <div className="mx-auto mb-2 h-48 w-48">
+            <Image
+              src="/logo.png"
+              alt="TrainAI Logo"
+              width={192}
+              height={192}
+              className="h-full w-full object-contain"
+              priority
+            />
+          </div>
           <CardTitle className="text-2xl">Forgot your password?</CardTitle>
           <CardDescription>
-            Enter your email and we'll send you a link to reset your password
+            Enter your email and we&apos;ll send you a link to reset your password
           </CardDescription>
         </CardHeader>
         <CardContent>

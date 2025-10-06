@@ -57,22 +57,10 @@ Create chapters that fit within the ${duration} second video duration.`,
       response_format: { type: 'json_object' },
     })
 
-    const result = JSON.parse(completion.choices[0].message.content || '{}')
+    const rawContent = completion.choices[0]?.message?.content ?? '{}'
+    const parsed = parseSOPResponse(rawContent, typeof duration === 'number' ? duration : 0)
 
-    // Validate and cap chapter times to video duration
-    if (result.chapters && duration) {
-      result.chapters = result.chapters.map((chapter: any) => ({
-        ...chapter,
-        start_time: Math.min(chapter.start_time, duration),
-        end_time: Math.min(chapter.end_time, duration),
-      }))
-    }
-
-    return NextResponse.json({
-      chapters: result.chapters || [],
-      sop: result.sop || '',
-      keyPoints: result.keyPoints || [],
-    })
+    return NextResponse.json(parsed)
   } catch (error) {
     console.error('SOP generation error:', error)
     return NextResponse.json(
@@ -80,4 +68,81 @@ Create chapters that fit within the ${duration} second video duration.`,
       { status: 500 }
     )
   }
+}
+
+interface ChapterResponse {
+  title: string
+  start_time: number
+  end_time: number
+  quiz_question?: string
+}
+
+interface SOPResponse {
+  chapters: ChapterResponse[]
+  sop: string
+  keyPoints: string[]
+}
+
+function parseSOPResponse(content: string, duration: number): SOPResponse {
+  let parsed: Record<string, unknown>
+
+  try {
+    parsed = JSON.parse(content) as Record<string, unknown>
+  } catch (error) {
+    console.error('Failed to parse SOP response JSON:', error)
+    return { chapters: [], sop: '', keyPoints: [] }
+  }
+
+  const chapters = Array.isArray(parsed.chapters)
+    ? parsed.chapters
+        .map((chapter, index) => sanitizeChapter(chapter, index, duration))
+        .filter((chapter): chapter is ChapterResponse => chapter !== null)
+    : []
+
+  if (chapters.length > 0 && duration > 0) {
+    chapters[chapters.length - 1].end_time = duration
+  }
+
+  const sop = typeof parsed.sop === 'string' ? parsed.sop : ''
+  const keyPoints = Array.isArray(parsed.keyPoints)
+    ? parsed.keyPoints.filter((point): point is string => typeof point === 'string')
+    : []
+
+  return {
+    chapters,
+    sop,
+    keyPoints,
+  }
+}
+
+function sanitizeChapter(chapter: unknown, index: number, duration: number): ChapterResponse | null {
+  if (typeof chapter !== 'object' || chapter === null) {
+    console.warn(`Skipping invalid chapter at index ${index}`)
+    return null
+  }
+
+  const record = chapter as Record<string, unknown>
+  const title = typeof record.title === 'string' ? record.title : null
+  const startRaw = typeof record.start_time === 'number' ? record.start_time : null
+  const endRaw = typeof record.end_time === 'number' ? record.end_time : null
+  const quizQuestion = typeof record.quiz_question === 'string' ? record.quiz_question : undefined
+
+  if (title === null || startRaw === null || endRaw === null) {
+    console.warn(`Skipping chapter at index ${index} due to missing fields`)
+    return null
+  }
+
+  const start = clamp(startRaw, 0, duration)
+  const end = clamp(endRaw, start, duration)
+
+  return {
+    title,
+    start_time: start,
+    end_time: end,
+    ...(quizQuestion ? { quiz_question: quizQuestion } : {}),
+  }
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max)
 }

@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { trainingId, messages, context } = await request.json()
+    const { trainingId, messages, context } = parseRequest(await request.json())
 
     // Build system prompt with training context
     const systemPrompt = `You are an AI tutor helping an employee learn from a training video. Your role is to:
@@ -43,8 +43,8 @@ Be friendly, encouraging, and concise. When quizzing, ask one question at a time
     // Convert messages to OpenAI format
     const openAIMessages = [
       { role: 'system' as const, content: systemPrompt },
-      ...messages.map((msg: any) => ({
-        role: msg.role as 'user' | 'assistant',
+      ...messages.map((msg) => ({
+        role: msg.role,
         content: msg.content,
       })),
     ]
@@ -57,7 +57,7 @@ Be friendly, encouraging, and concise. When quizzing, ask one question at a time
       max_tokens: 500,
     })
 
-    const aiMessage = completion.choices[0].message.content
+    const aiMessage = completion.choices[0]?.message?.content ?? ''
 
     // Generate audio with OpenAI TTS
     const mp3Response = await openai.audio.speech.create({
@@ -99,4 +99,70 @@ Be friendly, encouraging, and concise. When quizzing, ask one question at a time
       { status: 500 }
     )
   }
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+interface ChatContext {
+  trainingTitle?: string
+  sop?: string
+  keyPoints?: string[]
+}
+
+interface ChatRequestBody {
+  trainingId: string
+  messages: ChatMessage[]
+  context: ChatContext
+}
+
+function parseRequest(body: unknown): ChatRequestBody {
+  if (typeof body !== 'object' || body === null) {
+    throw new Error('Invalid request body')
+  }
+
+  const record = body as Record<string, unknown>
+  const trainingId = typeof record.trainingId === 'string' ? record.trainingId : ''
+  const rawMessages = Array.isArray(record.messages) ? record.messages : []
+  const contextRecord = typeof record.context === 'object' && record.context !== null
+    ? record.context as Record<string, unknown>
+    : {}
+
+  if (!trainingId) {
+    throw new Error('trainingId is required')
+  }
+
+  const messages: ChatMessage[] = rawMessages
+    .map((msg, index) => sanitizeMessage(msg, index))
+    .filter((msg): msg is ChatMessage => msg !== null)
+
+  const context: ChatContext = {
+    trainingTitle: typeof contextRecord.trainingTitle === 'string' ? contextRecord.trainingTitle : undefined,
+    sop: typeof contextRecord.sop === 'string' ? contextRecord.sop : undefined,
+    keyPoints: Array.isArray(contextRecord.keyPoints)
+      ? contextRecord.keyPoints.filter((point): point is string => typeof point === 'string')
+      : undefined,
+  }
+
+  return { trainingId, messages, context }
+}
+
+function sanitizeMessage(message: unknown, index: number): ChatMessage | null {
+  if (typeof message !== 'object' || message === null) {
+    console.warn(`Skipping invalid chat message at index ${index}`)
+    return null
+  }
+
+  const record = message as Record<string, unknown>
+  const role = record.role
+  const content = record.content
+
+  if ((role === 'user' || role === 'assistant') && typeof content === 'string') {
+    return { role, content }
+  }
+
+  console.warn(`Skipping chat message at index ${index} due to missing role/content`)
+  return null
 }

@@ -99,8 +99,9 @@ function EmployeeSignUpForm() {
       // Success! Redirect to employee dashboard
       router.push('/dashboard/employee')
       router.refresh()
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign up')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to sign up'
+      setError(message)
     } finally {
       setLoading(false)
     }

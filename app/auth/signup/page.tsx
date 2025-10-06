@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -84,8 +85,9 @@ export default function SignUpPage() {
       // Success! Redirect to owner dashboard
       router.push('/dashboard/owner')
       router.refresh()
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign up')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to sign up'
+      setError(message)
     } finally {
       setLoading(false)
     }
@@ -95,11 +97,16 @@ export default function SignUpPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-200 via-purple-200 to-blue-100 flex items-center justify-center p-8">
       <Card className="w-full max-w-md border-blue-100 shadow-xl">
         <CardHeader className="text-center">
-          <img
-            src="/logo.png"
-            alt="TrainAI Logo"
-            className="mx-auto h-48 w-48 mb-2"
-          />
+          <div className="mx-auto mb-2 h-48 w-48">
+            <Image
+              src="/logo.png"
+              alt="TrainAI Logo"
+              width={192}
+              height={192}
+              className="h-full w-full object-contain"
+              priority
+            />
+          </div>
           <CardTitle className="text-2xl">Create your account</CardTitle>
           <CardDescription>Start creating AI-powered training in minutes</CardDescription>
         </CardHeader>

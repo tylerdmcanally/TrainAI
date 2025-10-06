@@ -14,9 +14,9 @@ import { AssignTrainingButton } from '@/components/training/assign-training-butt
 export default async function TrainingDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>
+  params: { id: string }
 }) {
-  const { id } = await params
+  const { id } = params
   const supabase = await createClient()
 
   // Get current user

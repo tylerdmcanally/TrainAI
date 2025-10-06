@@ -36,7 +36,7 @@ export function ProcessingStepEnhanced({ data, onUpdate, onNext }: ProcessingSte
   const { showError, showSuccess, showWarning } = useToastNotifications()
 
   // Chunked upload hook for video upload
-  const { upload: uploadVideo, isUploading: isUploadingVideo, progress: uploadProgress } = useChunkedUpload({
+  const { upload: uploadVideo } = useChunkedUpload({
     chunkSize: 2 * 1024 * 1024, // 2MB chunks for videos
     onProgress: (progress) => {
       if (stage === 'uploading') {
@@ -91,7 +91,7 @@ export function ProcessingStepEnhanced({ data, onUpdate, onNext }: ProcessingSte
           showSuccess(`Video uploaded successfully! (${(uploadTime / 1000).toFixed(1)}s)`)
         }, {
           retries: 3,
-          onRetry: (attempt, err) => {
+          onRetry: (attempt) => {
             showWarning(`Video upload failed. Retrying attempt ${attempt}...`)
             setIsRetrying(true)
             setRetryCount(attempt)
@@ -134,7 +134,7 @@ export function ProcessingStepEnhanced({ data, onUpdate, onNext }: ProcessingSte
           showSuccess('Audio transcribed successfully!')
         }, {
           retries: 3,
-          onRetry: (attempt, err) => {
+          onRetry: (attempt) => {
             showWarning(`Transcription failed. Retrying attempt ${attempt}...`)
             setIsRetrying(true)
             setRetryCount(attempt)
@@ -190,7 +190,7 @@ export function ProcessingStepEnhanced({ data, onUpdate, onNext }: ProcessingSte
           showSuccess('AI content generated successfully!')
         }, {
           retries: 3,
-          onRetry: (attempt, err) => {
+          onRetry: (attempt) => {
             showWarning(`AI generation failed. Retrying attempt ${attempt}...`)
             setIsRetrying(true)
             setRetryCount(attempt)
@@ -234,7 +234,7 @@ export function ProcessingStepEnhanced({ data, onUpdate, onNext }: ProcessingSte
             showSuccess('Video uploaded to Mux successfully!')
           }, {
             retries: 2, // Mux uploads can be flaky, but not infinitely retryable
-            onRetry: (attempt, err) => {
+            onRetry: (attempt) => {
               showWarning(`Mux upload failed. Retrying attempt ${attempt}...`)
               setIsRetrying(true)
               setRetryCount(attempt)
@@ -259,7 +259,7 @@ export function ProcessingStepEnhanced({ data, onUpdate, onNext }: ProcessingSte
         onNext()
       }, 1500)
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       const appError = createAppError(err)
       setError(getErrorMessage(appError))
       setStage('error')

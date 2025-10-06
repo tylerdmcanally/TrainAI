@@ -1,32 +1,24 @@
 'use client'
 
-import { useState } from 'react'
 import { 
   User, 
   Bell, 
   Shield, 
   Building, 
   Video, 
-  Eye, 
   Palette,
   Settings as SettingsIcon,
   ChevronRight
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import type { SettingsSection } from './types'
 
 interface SettingsNavigationProps {
   userRole: 'owner' | 'employee'
+  activeSection: SettingsSection
+  onSectionChange: (section: SettingsSection) => void
 }
-
-type SettingsSection = 
-  | 'profile'
-  | 'notifications'
-  | 'training'
-  | 'privacy'
-  | 'company'
-  | 'branding'
-  | 'security'
 
 interface NavigationItem {
   id: SettingsSection
@@ -88,9 +80,7 @@ const navigationItems: NavigationItem[] = [
   }
 ]
 
-export function SettingsNavigation({ userRole }: SettingsNavigationProps) {
-  const [activeSection, setActiveSection] = useState<SettingsSection>('profile')
-
+export function SettingsNavigation({ userRole, activeSection, onSectionChange }: SettingsNavigationProps) {
   // Filter navigation items based on user role
   const availableItems = navigationItems.filter(item => 
     item.roles.includes(userRole)
@@ -121,7 +111,7 @@ export function SettingsNavigation({ userRole }: SettingsNavigationProps) {
                   "w-full justify-start h-auto p-4 text-left",
                   isActive && "bg-blue-50 text-blue-700 border border-blue-200"
                 )}
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => onSectionChange(item.id)}
               >
                 <div className="flex items-start gap-3 w-full">
                   <Icon className={cn(

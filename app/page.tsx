@@ -37,7 +37,7 @@ export default function Home() {
             </div>
             <div>
               <h3 className="font-semibold mb-1">Track progress automatically</h3>
-              <p className="text-gray-600 text-sm">Know who completed training and how they're doing.</p>
+              <p className="text-gray-600 text-sm">Know who completed training and how they&apos;re doing.</p>
             </div>
           </div>
         </div>

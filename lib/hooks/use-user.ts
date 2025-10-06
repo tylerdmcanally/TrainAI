@@ -86,5 +86,11 @@ export function useUser() {
     }
   }, [])
 
-  return { authUser, profile, companyName, loading }
+  return {
+    authUser,
+    user: authUser,
+    profile,
+    companyName,
+    loading,
+  }
 }
