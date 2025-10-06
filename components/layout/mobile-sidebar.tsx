@@ -76,7 +76,7 @@ export function MobileSidebar() {
                 className="h-12 w-12 flex-shrink-0"
               />
               <span className="text-lg font-semibold text-gray-900">
-                {companyName || 'The Test Company'}
+                {companyName || 'TrainAI'}
               </span>
             </div>
             <Button
@@ -169,7 +169,7 @@ export function MobileSidebar() {
             className="h-14 w-14 flex-shrink-0"
           />
           <span className="text-lg font-semibold text-gray-900 truncate">
-            {companyName || 'The Test Company'}
+            {companyName || 'TrainAI'}
           </span>
         </Link>
       </div>
@@ -198,32 +198,52 @@ export function MobileSidebar() {
 
       {/* User section */}
       <div className="border-t p-4">
-        {/* WORKING: Show user section with auth data */}
-        <div className="flex items-center gap-3 mb-3">
-          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white font-semibold text-sm">
-            {profile ? getInitials(profile.name) : 'TO'}
+        {loading ? (
+          <div className="flex items-center gap-3 mb-3">
+            <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse" />
+            <div className="flex-1 min-w-0">
+              <div className="h-4 bg-gray-200 rounded animate-pulse mb-1" />
+              <div className="h-3 bg-gray-200 rounded animate-pulse w-2/3" />
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">
-              {profile?.name || 'Test Owner'}
-            </p>
-            <p className="text-xs text-gray-500 truncate">
-              {profile?.email || 'owner@test.com'}
-            </p>
-            <p className="text-xs text-green-600 truncate">
-              Authenticated ✓
-            </p>
+        ) : profile ? (
+          <div className="flex items-center gap-3 mb-3">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white font-semibold text-sm">
+              {getInitials(profile.name)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {profile.name}
+              </p>
+              <p className="text-xs text-gray-500 truncate">
+                {profile.email}
+              </p>
+            </div>
           </div>
-        </div>
-        <Button
-          variant="ghost"
-          className="w-full justify-start"
-          size="sm"
-          onClick={handleLogout}
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Logout
-        </Button>
+        ) : (
+          <div className="flex items-center gap-3 mb-3">
+            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm">
+              ?
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-500">
+                Not logged in
+              </p>
+            </div>
+          </div>
+        )}
+        
+        {profile && (
+          <Button
+            variant="ghost"
+            className="w-full justify-start"
+            size="sm"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
+        )}
       </div>
     </div>
   )

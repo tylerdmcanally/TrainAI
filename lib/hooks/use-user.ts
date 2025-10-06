@@ -17,13 +17,7 @@ export function useUser() {
     // Get initial user
     const getUser = async () => {
       try {
-        // Add timeout to auth call to prevent hanging
-        const authPromise = supabase.auth.getUser()
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Auth call timeout')), 3000)
-        )
-        
-        const { data: { user }, error: authError } = await Promise.race([authPromise, timeoutPromise])
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
         
         if (authError) {
           setLoading(false)
@@ -59,11 +53,6 @@ export function useUser() {
         setLoading(false)
       }
     }
-
-    // Add timeout to prevent hanging
-    const timeoutId = setTimeout(() => {
-      setLoading(false)
-    }, 5000)
 
     getUser()
 
@@ -103,7 +92,6 @@ export function useUser() {
     )
 
     return () => {
-      clearTimeout(timeoutId)
       subscription.unsubscribe()
     }
   }, [])
