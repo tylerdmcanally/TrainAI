@@ -65,6 +65,12 @@ export function useUser() {
       }
     }
 
+    // Add timeout to prevent hanging
+    const timeoutId = setTimeout(() => {
+      console.log('useUser: Timeout reached, setting loading to false')
+      setLoading(false)
+    }, 5000)
+
     getUser()
 
     // Listen for auth changes
@@ -103,6 +109,7 @@ export function useUser() {
     )
 
     return () => {
+      clearTimeout(timeoutId)
       subscription.unsubscribe()
     }
   }, [])
