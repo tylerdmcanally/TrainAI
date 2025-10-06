@@ -18,7 +18,14 @@ export function useUser() {
     const getUser = async () => {
       try {
         console.log('useUser: Getting initial user...')
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        
+        // Add timeout to auth call to prevent hanging
+        const authPromise = supabase.auth.getUser()
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Auth call timeout')), 3000)
+        )
+        
+        const { data: { user }, error: authError } = await Promise.race([authPromise, timeoutPromise])
         console.log('useUser: Auth user:', { user, authError })
         
         if (authError) {
