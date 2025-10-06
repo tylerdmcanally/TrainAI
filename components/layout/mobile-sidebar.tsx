@@ -72,7 +72,7 @@ export function MobileSidebar() {
               <img
                 src="/logo.png"
                 alt="TrainAI Logo"
-                className="h-8 w-8 flex-shrink-0"
+                className="h-12 w-12 flex-shrink-0"
               />
               <span className="text-lg font-semibold text-gray-900">
                 {companyName || 'TrainAI'}
@@ -165,7 +165,7 @@ export function MobileSidebar() {
           <img
             src="/logo.png"
             alt="TrainAI Logo"
-            className="h-10 w-10 flex-shrink-0"
+            className="h-14 w-14 flex-shrink-0"
           />
           <span className="text-lg font-semibold text-gray-900 truncate">
             {companyName || 'TrainAI'}
