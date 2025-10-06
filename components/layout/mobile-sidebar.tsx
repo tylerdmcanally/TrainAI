@@ -16,8 +16,6 @@ export function MobileSidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
 
-  // Debug logging
-  console.log('MobileSidebar render:', { profile, companyName, loading })
 
   // Check if mobile on mount and resize
   useEffect(() => {
