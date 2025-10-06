@@ -16,31 +16,40 @@ export function useUser() {
 
     // Get initial user
     const getUser = async () => {
+      console.log('useUser: Getting initial user...')
       const { data: { user } } = await supabase.auth.getUser()
+      console.log('useUser: Auth user:', user)
       setAuthUser(user)
 
       if (user) {
         // Get user profile
-        const { data: profileData } = await supabase
+        console.log('useUser: Fetching user profile for:', user.id)
+        const { data: profileData, error: profileError } = await supabase
           .from('users')
           .select('*')
           .eq('id', user.id)
           .single()
 
+        console.log('useUser: Profile data:', { profileData, profileError })
         setProfile(profileData)
 
         // Get company name if user has a company
         if (profileData?.company_id) {
-          const { data: companyData } = await supabase
+          console.log('useUser: Fetching company data for:', profileData.company_id)
+          const { data: companyData, error: companyError } = await supabase
             .from('companies')
             .select('name')
             .eq('id', profileData.company_id)
             .single()
 
+          console.log('useUser: Company data:', { companyData, companyError })
           setCompanyName(companyData?.name || null)
         }
+      } else {
+        console.log('useUser: No authenticated user')
       }
 
+      console.log('useUser: Setting loading to false')
       setLoading(false)
     }
 
