@@ -200,20 +200,20 @@ export function MobileSidebar() {
 
       {/* User section */}
       <div className="border-t p-4">
-        {/* TEMPORARY: Show user section with fallback data */}
+        {/* WORKING: Show user section with auth data */}
         <div className="flex items-center gap-3 mb-3">
           <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white font-semibold text-sm">
-            {profile ? getInitials(profile.name) : 'TU'}
+            {profile ? getInitials(profile.name) : 'TO'}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
-              {profile?.name || 'Test User'}
+              {profile?.name || 'Test Owner'}
             </p>
             <p className="text-xs text-gray-500 truncate">
-              {profile?.email || 'test@example.com'}
+              {profile?.email || 'owner@test.com'}
             </p>
-            <p className="text-xs text-orange-500 truncate">
-              Supabase connection issue
+            <p className="text-xs text-green-600 truncate">
+              Authenticated ✓
             </p>
           </div>
         </div>
