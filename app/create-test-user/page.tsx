@@ -25,7 +25,9 @@ export default function CreateTestUserPage() {
 
       // Step 1: Create auth user
       setResult('Step 1: Creating auth user...')
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      
+      // Add timeout to auth signup
+      const signupPromise = supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
@@ -35,6 +37,12 @@ export default function CreateTestUserPage() {
           },
         },
       })
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Signup timeout')), 10000)
+      )
+      
+      const { data: authData, error: authError } = await Promise.race([signupPromise, timeoutPromise])
 
       if (authError) {
         setResult(`❌ Auth signup failed: ${authError.message}`)
