@@ -10,10 +10,10 @@ export default function CreateTestUserPage() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<string>('')
   const [formData, setFormData] = useState({
-    name: 'Test Owner',
-    email: 'owner@test.com',
+    name: 'Test Owner 2',
+    email: 'owner2@test.com',
     password: 'password123',
-    companyName: 'The Test Company'
+    companyName: 'The Test Company 2'
   })
 
   const createTestUser = async () => {
